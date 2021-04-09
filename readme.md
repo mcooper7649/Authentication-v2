@@ -62,6 +62,7 @@ Register Users with a Username and Password
 
 1. This is level 1, lowest level of security
 2. Creating an account for our user and storing the pw in our DB
+3. This stores the User Profile information in plaintext on the DB
 
 
 - We need to add a DB first. 
@@ -106,7 +107,101 @@ Register Users with a Username and Password
     });
     ```
 
-    - Lets save and test our code out now
-        - Use a simple email: 1@2.com as we have no data validation yet
-        - Use a simple password, such as 123
-        - If it renders your Secrets page, congratulations. You did it correctly so far.
+- Lets save and test our code out now
+    - Use a simple email: 1@2.com as we have no data validation yet
+    - Use a simple password, such as 123
+    - If it renders your Secrets page, congratulations. You did it correctly so far.
+
+- Lets create app.post next with the login route. 
+    - This will take the information we put into the login input fields and check to see if we have a user with that profile
+    - set username and password to the value of the input fields
+    - Tap into the User collection and call findOne 
+        - search parameters  email: username
+        - Use a Data Validation callback to error handle the username
+        - if foundUser, compare foundUser.password to the password input
+        - if password matches res.render secrets
+
+
+    ```
+    app.post("/login", function (req, res){
+    const username = req.body.username;
+    const password = req.body.password;
+
+        User.findOne({email: username}, function(err, foundUser){
+            if (err){
+                console.log(err);
+            } else {
+                if (foundUser){
+                    if (foundUser.password === password){
+                        res.render("secretes")
+                    }
+                }
+            }
+        })
+    })
+    ```
+            
+- Test your login now and seee if our registered user can login
+
+
+## Level 2 Authentication
+---
+
+
+ As you can see from our previous module, we can see our passwords if we access the DB from robo3t. That's nice and all but you are suspectible to hackers. In our next module we will learn how to encrypt our data.
+
+ Encryption has been used throughout to hide messages. This type of technology has evolved over the years.
+
+
+ ### Installation
+ ---
+
+(Mongoose-Encryption)[https://preview.npmjs.com/package/mongoose-encryption] - NPM Package for Mongoose Encryption
+
+1. Lets install Mongoose Encryption to get started 
+    - Stop nodemon
+    - npm install mongoose-encryption
+    - ``const encrypt =  require("mongoose-encryption")``
+    
+2. If you view the Setup on the documentation, you will notice the encrypt plugin needs the userSchema to be a new mongoose.Schema
+
+```
+const userSchema =  new mongoose.Schema ({
+    email: String,
+    password: String
+});
+```
+3. The documentation says we have two methods to which we can encrypt our DB
+    - with an encryptionKey and a signingKey
+    - OR with a secret (a long string) to encypt
+
+4. Using the secret method we can set a password
+    - call upon the encypt plugin for the mongoose schema userSchema, passing secret:secret
+```
+const secret = "Thisisourlittlesecret."
+userSchema.plugin(encrypt, {secret: secret})
+```
+
+5. This is great if we are trying to encrypt all the user data, ie username and password but we want to just encrypt the password
+    - Lets specify what field using the encryptedFields property
+    - ``userSchema.plugin(encrypt, {secret: secret, encryptedFields: ["password"]})``
+    - If you wanted to encrypt more fields you can just add more field names to the array with password
+
+6. Mongoose Encryt is very nice because on the backend it automatically encrypts and decrypts for us.
+    - When you call save() it will automatically encrypt
+    - When you call fine() it will automatically decrypt
+
+7. Test it out
+    - Create another user a@b.com for example
+    - Create another pw qwerty for example
+    - We should be able to seee this new User Email
+    - Password though is a very long binary string
+    - Try to login using this user profile and confirm the findOne is succesffully decrypting
+
+
+### Environment Variables
+---
+
+1. While you may have noticed, our const secret is stored on the servers code. So if someone gets ahold of this password they can use the same package to decrypt our DB and expose our users password.
+
+2. Environment Variables let store secrets, apiKeys, or anything we want to store.
