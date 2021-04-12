@@ -248,4 +248,9 @@ userSchema.plugin(encrypt, {secret: secret})
     - line 29, try to tap into the secret password of the .env file
 ``userSchema.plugin(encrypt, {secret: process.env.SECRET, encryptedFields: ["password"]})``
 
-9. 
+9. ONE MORE THING. These files are great and all but they still don't hide themselves from being uploaded and viewed by Git.
+
+(Git-IGNORE-TEMPLATE-FILES-NODE)[https://github.com/github/gitignore/blob/master/Node.gitignore]
+
+    - We need to add a .gitignore file
+        - In project root, touch .gitignore
