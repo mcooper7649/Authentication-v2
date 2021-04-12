@@ -254,3 +254,11 @@ userSchema.plugin(encrypt, {secret: secret})
 
     - We need to add a .gitignore file
         - In project root, touch .gitignore
+        - Add template data from .gitnore node public repo, linked above
+        
+10. Secure your Data with .ENV and .GITIGNORE
+    - It's best practice to create these files first
+    
+
+## Level 3 Hashing Passwords
+---
