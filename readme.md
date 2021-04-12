@@ -144,7 +144,7 @@ Register Users with a Username and Password
 - Test your login now and seee if our registered user can login
 
 
-## Level 2 Authentication
+## Level 2 Encryption
 ---
 
 
@@ -202,6 +202,50 @@ userSchema.plugin(encrypt, {secret: secret})
 ### Environment Variables
 ---
 
+(.ENV-NPM-OFFICIAL)[https://www.npmjs.com/package/dotenv]
+
 1. While you may have noticed, our const secret is stored on the servers code. So if someone gets ahold of this password they can use the same package to decrypt our DB and expose our users password.
 
-2. Environment Variables let store secrets, apiKeys, or anything we want to store.
+2. Environment Variables let store secrets, apiKeys, or anything we want to store and keep them hidden from public repositories!
+    - This can be crawled by bots
+        - Bots look for AWS and other cloud platform dev keys so they can mine BTC.
+    - This can then be used to decrypto your DB
+
+3. dotenv is a NPM package that lets us utilize .ENV files
+    - npm i dotenv
+    - require ('dotenv').config()
+        - This needs to be at the top of your app.js
+        - This doesn't need an a const declared
+
+4. How do we create a .env file?   
+    - In our ROOT directory we need to create the .env
+    - touch .env from command line
+
+5. How to add environment variables to .env file?
+    - Format for new entries is NAME = VALUE 
+    ```
+    DB_HOST=localhost
+    DB_USER=root
+    DB_PASS=s1mp13
+    ```
+
+6. Thats it!! But how to access?
+    - process.env now has the keys and values you defined 
+    
+
+7. Lets give it a shot
+    - Lets remove our secret and add to the .env file
+        - Follow the same format
+            - const secret = "Thisisourlittlesecret." // OLD
+            - SECRET=Thisisourlittlesecret. // NEW
+    - We should now be able to tap into our environment variables
+        - console.log(process.env.SECRET)
+            - You should now see two things in the console
+                - The secret password
+                - secret is not defined error
+
+8. Lets fix the code for a .env file
+    - line 29, try to tap into the secret password of the .env file
+``userSchema.plugin(encrypt, {secret: process.env.SECRET, encryptedFields: ["password"]})``
+
+9. 
