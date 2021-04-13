@@ -262,3 +262,43 @@ userSchema.plugin(encrypt, {secret: secret})
 
 ## Level 3 Hashing Passwords
 ---
+
+
+Previosly we learned about encryption, taking a password and securing it using an encryption key. Then using a modern cypher method, like aes. Now we have a generated a ciphertext that will make it hard to decipher the DB. 
+
+The problem with using just encryption is we have to have a encryption key. This will need to be stored somewhere and create a weak surface area for hackers to exploit. This is where Hashing comes to play.
+
+- If there is no encryption key, how do we convert it back into plaintext? 
+    - You don't
+    - Hashed pws are designed to hash one-way so its virtually impossible, to hash a pw the other way
+    
+- How does it work?
+    - Upon account creation and login the account credentials are hashed and encrypted/decrypted. 
+    - This never stores the actual plaintext pw on the server
+    - This doesn't allow admin to see the original PWs
+
+### Installation
+---
+
+(npmjs-md5-home)[https://www.npmjs.com/package/md5]
+
+1. Lets run install the npm package and configure by using the code snippet below
+
+```
+npm i md5
+```
+
+2. Next we need to remove the encryption configuration we setup on previous modules.
+
+    - ``const encrypt =  require("mongoose-encryption")``
+    - ``userSchema.plugin(encrypt, {secret: process.env.SECRET, encryptedFields: ["password"]})``
+
+3. Now we can require md5 as per the documentation
+    - const mpd5 = require('md5');
+
+4. Then we need to add the md5 hashing function to to the register route
+    - password: md5(req.body.password)
+    - This converts it to an irreversable hash
+
+5. Lets add to the login route next 
+    - 
