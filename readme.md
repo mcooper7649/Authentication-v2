@@ -301,4 +301,30 @@ npm i md5
     - This converts it to an irreversable hash
 
 5. Lets add to the login route next 
-    - 
+    - const password = md5(req.body.password);
+
+
+
+### Hacking PWs 101
+---
+
+(haveibeenpwned)[https://www.haveibeenpwned.com]
+(hackertyper)[hackertyper.net]
+
+If a company lets you do a pw reset and they email you your pw back or generate a new pw that means they are either using the insecure encyrption key method or plaintext. 
+
+When you hash a PW it will always end up with the same hash if the pw is the same. Hackers thought of a way of creating HASH tables, of the most commonly used pws.
+
+Then a hacker can use their hash table and brute force it against a hashed DB of users.
+
+- A popular and effective Hashtable consists of 
+    - All the words from a dictionary
+    - All the numbers from a telephone book
+    - All combinations of characters up to 6 places
+
+- This is about 19 billion pws, but computers can proccess them very fast
+
+- Md5 is the most common type of hash table you will see on the web. You can even copy md5 hashes into google and you can find what pw it translates to, IF it's fairly common.
+
+- Strong PWs are long and contain numbers and special characters
+    - Using these techniques makes it rarely found on a hashtable
