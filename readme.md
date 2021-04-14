@@ -328,3 +328,113 @@ Then a hacker can use their hash table and brute force it against a hashed DB of
 
 - Strong PWs are long and contain numbers and special characters
     - Using these techniques makes it rarely found on a hashtable
+
+
+
+## Level 4 Salting and Hashing PWs with Bcrypt
+---
+
+- Salting allows us to avoid these types of Hash/Dictionary Attacks.
+    - In addition to the pw, salting generates a random set of characters
+    - These characters are then added to the pw then hashed
+    - Users that have the same pw will have different hashes now because each salt is different
+    - The user doesn't need to remember the salt
+        - It will be stored in the DB
+        - In DB, wouldn't store the actual PW, just the salt and the hash
+
+    - MD5 can still be hashed at 20billion pws a second using some of the latest HW technology today.
+    - BCRYPT algorythm can only be hashed at 17,000 pws a second.
+
+    - Salt Rounds allow us to specify another of rounds to salt a pw
+        - It will run a normal round of salt and create a new hash
+        - Then it will take that Hash and salt it again with the same salt.
+        - It will continue for as many rounds specified
+        - This is convienient if you want to change your hash periodically, but don't want to change your password or modify your code.
+
+### Bcrypt Setup
+---
+
+(BCRYPT-NPM)[https://www.npmjs.com/package/bcrypt]
+
+``npm i bcrypt``  // Root Directory
+
+- MD5 will no longer be used as BCRYPT replaces it. So we need to remove md5 references and add BCRYPT
+    - removed const md5 = require("md5")
+
+## REGISTER ROUTE
+---    
+
+- We will used Technique 2 (auto-gen a salt and hash)
+    - This needs to be on Register Post Route
+    ```
+    const hash = bcrypt.hash(myPlaintextPassword, saltRounds);
+    // Store hash in your password DB.
+    ```
+- Next We will need to add the new User into the callback
+- Then replace the md5 with hash, like below
+    - password: md5(req.body.password)
+    - password: hash
+
+
+    
+```
+app.post("/register", function (req, res){
+    const hash = bcrypt.hash(req.body.password, saltRounds, function(err, hash){
+        if (err){
+            console.log(err)
+        }else {
+        const newUser = new User({
+            email: req.body.username,
+            password: hash
+        });
+        newUser.save(function(err){
+            if (err){
+                console.log(err)
+            } else {
+                res.render("secrets")
+            }
+        });
+    }});
+
+   
+})
+```
+
+- If you search for the generated HASH now you shouldn't be able to find it on any search engine or hash table.
+
+
+## LOGIN ROUTE
+---
+
+- We will need to remove the md5 code from the login first
+
+OLD CODE
+
+```
+
+app.post("/login", function (req, res){
+    const username = req.body.username;
+    const password = md5(req.body.password);
+
+    User.findOne({email: username}, function(err, foundUser){
+        if (err){
+            console.log(err);
+        } else {
+            if (foundUser){
+                if (foundUser.password === password){
+                    res.render("secrets")
+                }
+            }
+        }
+    })
+})
+
+```
+
+- Next we will add the bcrypt compare method to the foundUser code in the login route.
+    - our first option password is pulled from req.body.password
+    - our 2nd option is the foundUser.password
+    
+- Bcrypt Compare method uses the callback err and res (for result) but that callback is the same as our res.render
+    - Lets rename the callback Bcrypt uses by default to avoid any errors and confusion
+- Try to login now and see if it works!
