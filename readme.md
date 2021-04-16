@@ -438,3 +438,12 @@ app.post("/login", function (req, res){
 - Bcrypt Compare method uses the callback err and res (for result) but that callback is the same as our res.render
     - Lets rename the callback Bcrypt uses by default to avoid any errors and confusion
 - Try to login now and see if it works!
+
+
+
+## Level 5 Cookies and Sessions
+---
+
+Cookies are data that are stored in the local browser about the user's interection with our platform. Thinks like session id, token, items in cart are all common cookies.
+
+Cookies persist in your local browser unless you clear them.
