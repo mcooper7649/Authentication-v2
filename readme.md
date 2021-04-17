@@ -447,3 +447,157 @@ app.post("/login", function (req, res){
 Cookies are data that are stored in the local browser about the user's interection with our platform. Thinks like session id, token, items in cart are all common cookies.
 
 Cookies persist in your local browser unless you clear them.
+
+Cookies can tell the server what html/css/js to render to the client as something like an item in cart, may be unique to their previous visit.
+
+- There are lots of different types of cookies.
+   - One common type of Cookies is the sesssion
+        - This keeps track the moment you login, the cookie is created
+        - Inside that Cookies, you will have your credentials and say you've successfully authenticated.
+        
+
+- What is Passport?
+    - Passport is authentication middleware for Node.js
+        - Can be dropped into any Express-based Web App
+        - A comprehensive set of strategies support authentication using
+            - Username/PW
+            - Facebook, Twitter and more social logins
+
+- Passport Installation and Setup
+    - npm install
+        - passport
+        - passport-local
+        - passport-local-mongoose
+        - express-session      NOT express-sessions
+
+- Remove BCRYPT and app.post login/register code
+
+- BCrypt removed install code
+```
+const bcrypt = require('bcrypt');
+const saltRounds = 10;
+```
+
+- Code for app.post login
+```
+ const username = req.body.username;
+ const password = req.body.password;
+
+    User.findOne({email: username}, function(err, foundUser){
+        if (err){
+            console.log(err);
+        } else {
+            if (foundUser){
+                bcrypt.compare(password, foundUser.password, function(err, results){
+                    if (err){
+                        console.log(err)
+                    } else {
+                        res.render("secrets")
+                    }
+                })
+                    
+                }
+            }
+        }
+    )
+```
+
+- Code for app.post register
+```
+const hash = bcrypt.hash(req.body.password, saltRounds, function(err, hash){
+        if (err){
+            console.log(err)
+        }else {
+        const newUser = new User({
+            email: req.body.username,
+            password: hash
+        });
+        newUser.save(function(err){
+            if (err){
+                console.log(err)
+            } else {
+                res.render("secrets")
+            }
+        });
+    }});
+
+
+```
+
+- Now we can configure the installed packages
+    - Express Session Setup
+        - const session = require('express-session')
+        - app.use(session({
+        secret: "Our little Secret.",
+        resave: "false",
+        saveUninitialized: false
+        }))
+    - Passport Setup
+        - const passport = require("passport")
+        - app.use(passport.initialize());  // Needed for passport to function; Read the documentation if confused.
+        - app.use(passport.session()); // Tells passport to use the session we previously configured
+    - Passport Local Setup
+        - const passportLocalMongoose = require("passport-local-mongoose")
+        - This needs to be added as a PLUGIN, similiar to the encryption plugin
+        - userSchema.plugin(passportLocalMongoose);
+        - This taps into the UserSchema so it needs to be placed after
+        
+    - Passport uses SERIALIZE AND DESERIALIZE to encrypt and decrypt the session cookie
+        - passport.serializeUser(User.serializeUser());
+        - passport.deserializeUser(User.deserializeUser());
+            - Needs to be added after the User model is created
+        - Fix Deprecation Warning
+            - mongoose.set("useCreateIndex", true);
+        - passport.use(User.createStrategy());
+
+    - Setup Register Post Route
+        - passport-local-mongoose package to acheive this
+        - Check documentation for setup
+        ```
+        app.post("/register", function (req, res){
+            User.register({username: req.body.username}, req.body.password, function(err, user){
+                if (err){
+                    console.log(err)
+                    res.redirect("/register")
+                } else {
+                    passport.authenticate("local")(req, res, function(){
+                        res.redirect("/secrets")
+                    })
+                    
+                }
+            })
+        
+        })
+        ```
+    - add secrets route too as passport will need to redirect
+            ```
+            app.get("/secrets", function(req, res){
+                if (req.isAuthenticated()){
+                    res.render("secrets");
+                } else {
+                    res.redirect("login")
+                }
+            })
+            ```
+
+
+    - Setup Login Post Router
+        ```
+        app.post("/login", function (req, res){
+        const user = new User({
+            username: req.body.username,
+            password: req.body.password
+        })
+
+        req.login(user, function(err){
+            if (err){
+                console.log(err)
+            } else {
+                passport.authenticate("local")(req, res, function(){
+                    res.redirect("/secrets")
+                })
+            }
+        })
+
+        })
+        ```
