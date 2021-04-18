@@ -853,3 +853,79 @@ passport.deserializeUser(function(id, done) {
     - Update UserSchema to store the FacebookId as a string
     - in the Facebook Strategy we need to add profileFields and the scope for what we want to return as facebook doesn't return anything unless specified.
     
+
+
+## Create a USER submission option so a user can submit a secret
+---
+
+1. Create an app.get for a Submit page
+    - We can copy our secrets get route, as we need to be authenticated to submit
+
+```
+app.get("/submit", function(req, res){
+  if (req.isAuthenticated()){
+    res.render("submit");
+  } else {
+    res.redirect("/login");
+  }
+});
+```
+
+2. Next we need to add a app.post to handle the posting of the users secret
+    - add the /submit route and callback
+        - in our callback we will declare submittedSecret = req.body.nameField
+        - similiar to our facebookId, we need to amend our Schema to save our secret
+            - secret: String
+
+```
+app.post("/submit", function(req, res){
+  const submittedSecret = req.body.secret;
+
+//Once the user is authenticated and their session gets saved, their user details are saved to req.user.
+  // console.log(req.user.id);
+
+  User.findById(req.user.id, function(err, foundUser){
+    if (err) {
+      console.log(err);
+    } else {
+      if (foundUser) {
+        foundUser.secret = submittedSecret;
+        foundUser.save(function(){
+          res.redirect("/secrets");
+        });
+      }
+    }
+  });
+});
+```
+
+3. We need to update the app.get /secrets route because we are no longer going to check if they are just authenticated or not, this will be accessble by anyone
+    - Instead we are going to look through the DB and display all the secrets submitted.
+
+4. User.find({secret: {$ne: null}})
+    - Searching for mongoDB field not null returns the code above
+    - you could also use {$exists:true}
+    - add a callback with foundUsers
+    - res.render("secrets", {usersWithSecrets: foundUsers}) inside the callback
+
+```
+app.get("/secrets", function(req, res){
+  User.find({"secret": {$ne: null}}, function(err, foundUsers){
+    if (err){
+      console.log(err);
+    } else {
+      if (foundUsers) {
+        res.render("secrets", {usersWithSecrets: foundUsers});
+      }
+    }
+  });
+});
+```
+
+5. Finally we just need to update the secrets page to render our secrets
+    - Using ejs we use a forEach look to loop through all the returned secrets on the secrets route.
+```
+<% usersWithSecrets.forEach(function(user){ %>
+      <p class="secret-text"><%=user.secret%></p>
+  <% }) %>
+```
