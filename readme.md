@@ -768,3 +768,88 @@ passport.use(new GoogleStrategy({
         - specify a failureRedirect route
             - { failureRedirect: "/login" }
         - in callback res.redirect to "/secrets" for successful authentication
+
+
+### Fixing Serialize/Deserialize
+---
+
+The original code we used for serialize was a simplified snippet. For passport with Google strategy we will need to add the code below.
+
+```
+
+passport.serializeUser(function(user, done) {
+  done(null, user.id);
+});
+
+passport.deserializeUser(function(id, done) {
+  User.findById(id, function(err, user) {
+    done(err, user);
+  });
+});
+
+```
+
+### JSON returned if we logged profile
+---
+
+- The JSON we get back if we log the profile from google would display this info:
+    - ID:
+    - displayName:
+    - name:
+    - photos: 
+    - provider: 'google'
+    - _raw: 
+
+- This is the information we can access.
+- The ID is the bit we want to SAVE in order to recall the user at a later date
+    - THIS IS VERY IMPORTANT, if we don't save a new profile will be created upon each login.
+
+- How do we save our googleid?
+    - Add it to the userSchema
+        - googleId: String
+    - Add to findOrCreate
+       ``` User.findOrCreate({ googleId: profile.id }, function (err, user) {
+      return cb(err, user);
+    });```
+
+### Stylize the Button some MORE
+---
+
+1. The Google Button doesn't look very Google-y, lets try and fix that
+    - lets head over tot he link below and grab the bootstrap-social.css and add to our public/css folder
+    - https://github.com/lipis/bootstrap-social
+    - Next we need to add to the header.ejs
+        - above the local style sheet we will put:
+            - ``<link rel="stylesheet" href="css/bootstrap-social.css">``
+        - That is connected now but we still need to add the bootstrap classes to the buttons.
+            - btn-social  This adds the sizing/spacing/rounding
+            - btn-google This adds the colors
+            - lets add to both the login and register ejs
+
+
+### Add Facebook Social Login CHALLENGE
+---
+
+(passport-facebook)[http://www.passportjs.org/packages/passport-facebook/]
+(facebook-developers)[https://developers.facebook.com/products/facebook-login/]
+
+1. After viewing the link for passport facebook 
+    - npm i passport-facebook
+
+2. Once installed we need to create a new application on facebook developers
+    - Create app with app name, email
+    - Select Facebook Login as the Product to your app
+    - Select WEB
+
+3. Setup passport facebook strategy
+    - const FacebookStrategy = require('passport-facebook').Strategy;
+    - update .env with fb generated app id
+    - update .env with fb generated secret
+
+4. We need to add authType: 'reauthenticate' to the "auth/facebook" get route
+    - This is how facebook authenticates
+
+5. We still need to save the FACEBOOK ID
+    - Update UserSchema to store the FacebookId as a string
+    - in the Facebook Strategy we need to add profileFields and the scope for what we want to return as facebook doesn't return anything unless specified.
+    
