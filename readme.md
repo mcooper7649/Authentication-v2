@@ -601,3 +601,170 @@ const hash = bcrypt.hash(req.body.password, saltRounds, function(err, hash){
 
         })
         ```
+
+
+    - Setup Logout Get Route
+
+    ```
+    app.get("/logout", function(req, res){
+        req.logout();
+    res.redirect("/")
+    });
+    ```
+
+
+## Level 6 - OAuth 2.0 and How to implement with Google
+---
+
+- What is OAuth? 
+    - Third Party 
+        - Open standard for token based Authorization
+- This standard can allow for many different types of authorization
+    - A Common type includes using FB or Google to login/register with 3rd party web apps without having to create a new account
+    - It can even share information such as contacts, friends emails, phone numbers with a 3rd party, when authorized.
+- This reduces liablity to the 3rd party as they don't actually need to manage the information
+
+- OAuth also allows for developers to specify which type of information is requested.
+    - Tinder, for example would get friends list and try to NOT match them 
+
+- OAuth allows the user to go onto the original platform (facebook or google) and de-authorize certain apps from using your credentials.
+
+
+### Setup your App
+---
+
+Step 1. Setup
+
+1. First part we need to tell the platform (facebook for our example) about our app on their developer console.
+
+2. Once we have an APP ID from that platform we can then interacting with their OAuth.
+    
+Step 2. Redirect to Authenticate
+
+1. Give them an option to login w/ platform (Facebook)
+    - This will redirect to a facebook login page
+    - Once logged in will show what information will be shared
+
+2. Your platform will then receive an authorization code
+    - This checks to confirm that they successfully logged in
+    - We can then exchagne this AUTH code for an ACCESS TOKEN
+        - These access tokens can be stored and allow for use longer period of time of access.
+        - Auth Code is like a day pass at a amusement park
+        - Access Token is like a Year pass
+
+
+### Passport Google Auth SETUP
+---
+
+- Choose a package (PassportJSPackages)[http://www.passportjs.org/packages/]
+- Google Developers Console (GoogleDEVCONSOLE)[https://console.cloud.google.com/apis/dashboard?pli=1&project=my-crypto-dashboard&folder=&organizationId=]
+
+- There are many packages, but for our example we want google 2.0
+    - npm install passport-google-oauth20
+    - read the docs if you have any issues, linked above
+        - Create app on Google Developers Console.
+        - Once the Project is done generating you can create credentials
+            - External User
+            - OAuth consent screen, fill out app name and email and logo etc
+            - SCOPES - What your app will need to access from Google
+                - For this application we just select email and profile
+                - Some SCOPES, such as youtube viewing history or email contacts, may require an additional API library
+                - Once the library is added we will try to add the scope again
+                - For this application we wont be using any additionaly APIs
+        - Once you have a real DOMAIN and TOS you will want to come back to this consent screen, and update the information accordingly
+
+    - CREATE OAUTH client ID
+        - Fill out application type and name: Web App; Secrets
+        - Authorized JavaScript origins
+            - http://localhost:3000
+        - Authorized redirect URI
+            - http://localhost:3000/auth/google/secrets
+        - We will get a Screen with OAuth client created
+            - These are sensitive information so we need to add to our .env file
+                - Add using format below
+                - CLIENT_ID=generatedKEY
+                - CLIENT_SECRET=generatedKey
+
+### Passport Google AUTH adding the Code
+---
+
+1. Lets Setup Google Strategy
+    - const GoogleStrategy = require('passport-google-oauth20').Strategy;
+    - We need to add passport.use new GoogleStrategy after the setup but before the routes. The best location is after the serialize/deserialize
+
+2. process.env to access our environment variables
+
+3. Update callbackURL with the URGL we specified as the Authorized redirect URI, we will also need to set that uri up on our routes
+
+4. Do to an issue with the API deprecating Google+ Login, we need to add another property to the strategy. This ENDPOINT is another native endpoint to google and will be able to pull information were looking for. 
+    - userProfileURL: 'https://www.gogoleapis.com/oauth2/v3/userinfo'
+
+5. Access Token allows us to get data on that user
+    - Once access token is granted we can exchange for refreshToken, gives us a longer period of time.
+    - Profile will give us the information were interested in.
+        - Email, Name, Friends
+6. The findOrCreate method listed isn't actually a mongoose method. It was listed by passport devs, kinda as pseudo code for someone to generate a function with this type of functionality. But a quick google will reveal there is a package that can help
+
+7. mongoose-findorcreate
+    - (npm-findorcreate)[https://www.npmjs.com/package/mongoose-findorcreate]
+    - npm i mongoose-findorcreate
+    - const findOrCreate = require('mongoose-findorcreate');
+    - This is also a plugin and needs to be added with the other plugins below the userSchema creation
+        - userSchema.plugin(findOrCreate);
+
+
+
+```
+passport.use(new GoogleStrategy({
+    clientID: process.env.CLIENT_ID,
+    clientSecret: process.env.CLIENT_SECRET,
+    callbackURL: "http://localhost:3000/auth/google/secrets",
+    userProfileURL: "https://www.googleapis.com/oauth2/v3/userinfo"
+  },
+  function(accessToken, refreshToken, profile, cb) {
+    console.log(profile);
+
+    User.findOrCreate({ googleId: profile.id }, function (err, user) {
+      return cb(err, user);
+    });
+  }
+));
+```
+
+### Configuring the FRONTEND
+---
+
+1. While the backend is nice and configured, if you head over to localhost:3000 you will notice there is no Google Login option
+    - This is because we didn't add the FrontEnd Code yet
+
+2. We can add the Google buttons
+    - Take note the code uses bootstrap and font awesome and href location
+    - Uncommment out code on register page and login page
+    ```
+      <div class="col-sm-4">
+      <div class="card social-block">
+        <div class="card-body">
+          <a class="btn btn-block" href="/auth/google" role="button">
+            <i class="fab fa-google"></i>
+            Sign Up with Google
+          </a>
+        </div>
+      </div>
+    </div>
+    ```
+3. Configuring the Buttons
+    - Configure "/auth/google" get
+    - When click it will create a get req to that path
+        - We need to add that path to our routes
+        - Then we will specify the strategy as 'google'
+        - Then we specify the scope, in this case we want the profile information
+        ```
+        app.get("/auth/google",
+        passport.authenticate('google', { scope: ["profile"] })
+        );
+        ```
+    - Configure "/auth/google/secrets" get
+        - passport references the google strategy again
+        - specify a failureRedirect route
+            - { failureRedirect: "/login" }
+        - in callback res.redirect to "/secrets" for successful authentication
